@@ -16,7 +16,7 @@ object PlayGround extends App {
     aList.flatMap(combine(_,bList))
 
   def combine(lists: List[List[Int]]): List[List[Int]] = {
-
+    ???
   }
 
 //  val result = loop(List(List()),List(a,b,c))

@@ -31,19 +31,20 @@ object BaseballReference extends App {
   }
   start()
 
-
-  def parseLine(line: String): Option[BaseballReferenceLine] = {
-
-    ???
-  }
-
-  case class BaseballReferenceLine(inning: Inning,
-                                   score: Score,
-                                   out: Int,
-                                   runnersOnBase: RunnersOnBase,
-                                   pitches: Int,
-                                   pitchCount: PitchCount,
-                                   pitchSequence: PitchSequence)
+  case class BaseballReferenceLine(
+    inning: Inning,
+    score: Score,
+    out: Int,
+    runnersOnBase: RunnersOnBase,
+    pitches: Pitches,
+    runsOuts: RunsOuts,
+    atBat: String,
+    batter: String,
+    pitcher: String,
+    winningTeamsWinProbability: Int,
+    winningTeamsWinExpectancy: Int,
+    description: String
+  )
 
   case class Inning(`type`: Inning.Type,
                     number: Int)
@@ -57,15 +58,35 @@ object BaseballReference extends App {
     type Type = Type.Value
   }
 
-  case class Score(home: Int,
-                   away: Int)
+  case class Score(
+    first: Int,
+    second: Int
+  )
 
-  case class RunnersOnBase(first: Option[Int],
-                           second: Option[Int],
-                           third: Option[Int])
+  case class RunnersOnBase(
+    first: Option[Int],
+    second: Option[Int],
+    third: Option[Int]
+  )
 
-  case class PitchCount(balls: Int, strikes: Int)
+  case class Pitches(
+    number: Int,
+    count: PitchCount,
+    sequence: PitchSequence
+  )
 
-  case class PitchSequence(s: Seq[String])
+  case class PitchCount(
+    balls: Int,
+    strikes: Int
+  )
+
+  case class PitchSequence(
+    sequence: Seq[String]
+  )
+
+  case class RunsOuts(
+    runs: Int,
+    outs: Int
+  )
 
 }
