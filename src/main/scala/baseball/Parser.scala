@@ -1,6 +1,6 @@
 package baseball
 
-import baseball.BaseballReference.{BaseballReferenceLine, Inning, Pitches, RunnersOnBase, RunsOuts, Score}
+import baseball.BaseballReference.{BaseballReferenceLine, Inning, PitchCount, PitchSequence, Pitches, RunnersOnBase, RunsOuts, Score}
 import cats.data._
 import cats.data.Validated._
 import cats.implicits._
@@ -21,7 +21,7 @@ trait Parser {
         parseRunsOuts(seq(5)),
         parseAtBat(seq(6)),
         parseBatter(seq(7)),
-        parsePitchers(seq(8)),
+        parsePitcher(seq(8)),
         parseWTWP(seq(9)),
         parseWTWE(seq(10)),
         parseDescription(seq(11))
@@ -59,18 +59,88 @@ trait Parser {
       case _ => InvalidOuts(outs).invalidNel
     }
 
-  def parseRunnersOnBase(rob: String): Result[RunnersOnBase] = {
-    InvalidRunnersOnBase(rob).invalidNel
-  }
+  def parseRunnersOnBase(rob: String): Result[RunnersOnBase] =
+    (for {
+      first  <- isIndexChar(rob, 0, '1', Set('1','-'))
+      second <- isIndexChar(rob, 1, '2', Set('2','-'))
+      third  <- isIndexChar(rob, 2, '3', Set('3','-'))
+    } yield RunnersOnBase(first, second, third)) match {
+      case None => InvalidRunnersOnBase(rob).invalidNel
+      case Some(runnersOn) => runnersOn.valid
+    }
 
-  def parsePitches(pitches: String): Result[Pitches] = ???
-  def parseRunsOuts(ro: String): Result[RunsOuts] = ???
-  def parseAtBat(ab: String): Result[String] = ???
-  def parseBatter(batter: String): Result[String] = ???
-  def parsePitchers(pitchers: String): Result[String] = ???
-  def parseWTWP(wtwp: String): Result[Int] = ???
-  def parseWTWE(wtwe: String): Result[Int] = ???
-  def parseDescription(desc: String): Result[String] = ???
+  private def isIndexChar(s: String, index: Int, char: Char, validChars: Set[Char]): Option[Boolean] =
+    if(s.length > index && validChars.contains(s(index))) {
+      Some(s(index) == char)
+    } else {
+      None
+    }
+
+  val pitchesRegEx = raw"^([0-9].*)\(([0-3])\-([0-2])\) (.*)".r
+
+  def parsePitches(pitches: String): Result[Pitches] =
+    pitches match {
+      case pitchesRegEx(number, balls, strikes, sequence) =>
+        Pitches(
+          number = number.toInt,
+          count = PitchCount(balls.toInt, strikes.toInt),
+          sequence = PitchSequence(sequence.split(""))
+        ).valid
+      case _ => InvalidPitches(pitches).invalidNel
+    }
+
+  val runsOutsRegEx = raw"(O*)(R*)".r
+
+  def parseRunsOuts(ro: String): Result[RunsOuts] =
+    ro.sorted match {
+      case runsOutsRegEx(outs, runs) =>
+        RunsOuts(runs.length, outs.length).valid
+      case _ => InvalidRunsOuts(ro).invalidNel
+    }
+
+  def parseAtBat(ab: String): Result[String] =
+    if(ab.isEmpty) {
+      InvalidAtBat(ab).invalidNel
+    } else {
+      ab.valid
+    }
+
+  def parseBatter(batter: String): Result[String] =
+    if(batter.isEmpty) {
+      InvalidBatter(batter).invalidNel
+    } else {
+      batter.valid
+    }
+
+  def parsePitcher(pitcher: String): Result[String] =
+    if(pitcher.isEmpty) {
+      InvalidPitcher(pitcher).invalidNel
+    } else {
+      pitcher.valid
+    }
+
+  val percentageRegEx = raw"(-?[0-9]+)%".r
+
+  def parseWTWP(wtwp: String): Result[Int] =
+    wtwp match {
+      case percentageRegEx(p) => p.toInt.valid
+      case _ => InvalidWinningTeamsWinProbability(wtwp).invalidNel
+    }
+
+  def parseWTWE(wtwe: String): Result[Int] =
+    wtwe match {
+      case percentageRegEx(p) => p.toInt.valid
+      case _ => InvalidWinningTeamsWinExpectancy(wtwe).invalidNel
+    }
+
+//  val descriptionRegEx = raw"(^[\w\s]*):".r
+
+  def parseDescription(desc: String): Result[String] =
+    if(desc.isEmpty) {
+     InvalidDescription(desc).invalidNel
+    } else {
+      desc.valid
+    }
 
   sealed trait ParseValidation {
     def message: String
@@ -104,12 +174,28 @@ trait Parser {
     override def message: String = s"Invalid runs/outs [$ro]"
   }
 
+  case class InvalidAtBat(ab: String) extends ParseValidation {
+    override def message: String = s"Invalid at bat [$ab]"
+  }
+
+  case class InvalidBatter(batter: String) extends ParseValidation {
+    override def message: String = s"Invalid batter [$batter]"
+  }
+
+  case class InvalidPitcher(pitcher: String) extends ParseValidation {
+    override def message: String = s"Invalid pitcher [$pitcher]"
+  }
+
   case class InvalidWinningTeamsWinProbability(wtwp: String) extends ParseValidation {
     override def message: String = s"Invalid winning teams win probability [$wtwp]"
   }
 
   case class InvalidWinningTeamsWinExpectancy(wtwe: String) extends ParseValidation {
     override def message: String = s"Invalid winning teams win expectancy [$wtwe]"
+  }
+
+  case class InvalidDescription(desc: String) extends ParseValidation {
+    override def message: String = s"Invalid description [$desc]"
   }
 }
 

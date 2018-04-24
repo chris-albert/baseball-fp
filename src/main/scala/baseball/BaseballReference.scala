@@ -64,10 +64,18 @@ object BaseballReference extends App {
   )
 
   case class RunnersOnBase(
-    first: Option[Int],
-    second: Option[Int],
-    third: Option[Int]
+    first: Boolean,
+    second: Boolean,
+    third: Boolean
   )
+
+  object RunnersOnBase {
+    def empty: RunnersOnBase = RunnersOnBase(
+      first = false,
+      second = false,
+      third = false
+    )
+  }
 
   case class Pitches(
     number: Int,
@@ -88,5 +96,13 @@ object BaseballReference extends App {
     runs: Int,
     outs: Int
   )
+
+  object RunsOuts {
+    def empty: RunsOuts = RunsOuts(
+      runs = 0,
+      outs = 0
+    )
+  }
+
 
 }
