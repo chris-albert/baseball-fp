@@ -71,8 +71,7 @@ object SimpleBaseball {
 
     def digits(n: Int) = if (n == 0) 1 else math.log10(math.abs(n)).toInt + 1
 
-    def boxAsString(bs: BoxScore): String = {
-      val names = BoxColumn("","Away","Home")
+    def boxAsString(bs: BoxScore, names: BoxColumn = BoxColumn("","Away","Home")): String = {
       val innings = bs.box.zipWithIndex.map{case (boxItem, index) =>
         BoxColumn((index + 1).toString,boxItem.away.toString,boxItem.home.toString)
       }

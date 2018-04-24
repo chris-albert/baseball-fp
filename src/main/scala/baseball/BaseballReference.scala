@@ -1,35 +1,10 @@
 package baseball
 
-import java.nio.file.Paths
-import akka.NotUsed
-import akka.actor.ActorSystem
-import akka.stream.scaladsl._
-import akka.stream._
-import akka.util.ByteString
+import simple.SimpleBaseball.Box.{BoxItem, BoxScore}
 
-object BaseballReference extends App {
+object BaseballReference {
 
-  implicit val actorSystem = ActorSystem()
-  implicit val materializer = ActorMaterializer()
-  implicit val executionContext = actorSystem.dispatcher
-
-  val resourcePath = "src/main/resources/baseball-reference/KC-SF-2014-10-29.csv"
-  def start() = {
-    println("Hi baseball")
-    FileIO.fromPath(Paths.get(resourcePath))
-      .via(Framing.delimiter(ByteString("\n"), 2048, true).map(_.utf8String))
-      .filter(_.matches("^[bt][0-9].*"))
-      .runForeach(println)
-      .map{_ =>
-        println("Stream complete")
-        actorSystem.terminate()
-      }
-      .recover{case e =>
-        println("Stream Error", e)
-        actorSystem.terminate()
-      }
-  }
-  start()
+  case class Game(lines: List[BaseballReferenceLine])
 
   case class BaseballReferenceLine(
     inning: Inning,
@@ -104,5 +79,33 @@ object BaseballReference extends App {
     )
   }
 
+  def splitAtDiff[A,B](list: List[A])(f: A => B): List[List[A]] = {
+    def loop(list: List[A], tmpAccu: List[A], accu: List[List[A]], last: Option[B]): List[List[A]] = list match {
+      case Nil =>
+        tmpAccu :: accu
+      case head :: rest if last.contains(f(head)) =>
+        //if we are the same as previous
+        loop(rest, head :: tmpAccu, accu, Some(f(head)))
+      case head :: rest =>
+        //if we are diff from previous
+        loop(rest, List(head), tmpAccu :: accu, Some(f(head)))
+    }
+    loop(list, List.empty[A], List.empty[List[A]], list.headOption.map(f)).map(_.reverse).reverse
+  }
 
+  def getBoxScore(game: Game): BoxScore = {
+    val boxItems: List[BoxItem] = splitAtDiff(game.lines)(_.inning.number).flatMap {lineInnings =>
+      splitAtDiff(lineInnings)(_.inning.`type`).map {topBottom =>
+        topBottom.map(_.runsOuts.runs).sum
+      } match {
+        case away :: home :: Nil =>
+          Some(BoxItem(away, home))
+        case away :: Nil =>
+          Some(BoxItem(away, 0))
+        case _ => None
+      }
+    }
+
+    BoxScore(boxItems, BoxItem(boxItems.map(_.away).sum,boxItems.map(_.home).sum))
+  }
 }

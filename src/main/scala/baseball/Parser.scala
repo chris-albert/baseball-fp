@@ -10,9 +10,10 @@ trait Parser {
 
   type Result[A] = ValidatedNel[ParseValidation,A]
 
-  def parseLine(line: String): Result[BaseballReferenceLine] = {
+  def parseLine(line: String): Result[BaseballReferenceLine] =
     parseColumns(line) andThen { seq =>
       (
+        //TODO: I hate this
         parseInning(seq(0)),
         parseScore(seq(1)),
         parseOuts(seq(2)),
@@ -27,7 +28,6 @@ trait Parser {
         parseDescription(seq(11))
       ).mapN(BaseballReferenceLine)
     }
-  }
 
   def parseColumns(line: String): Result[Seq[String]] = {
     //TODO this is not correct way to parse csv, need to account for "
