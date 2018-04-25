@@ -8,8 +8,7 @@ import akka.util.ByteString
 import cats.implicits._
 import cats.data.Validated.{Invalid, Valid}
 import baseball.BaseballReference.{BaseballReferenceLine, Game}
-import simple.SimpleBaseball.Box
-import simple.SimpleBaseball.Box.BoxColumn
+import baseball.Box._
 
 object StreamingParser extends App{
 
@@ -42,10 +41,8 @@ object StreamingParser extends App{
   }
 
   def start() = {
-    streamFile(resourcePath) { result =>
-
-      val box = BaseballReference.getBoxScore(result)
-      println(Box.boxAsString(box, BoxColumn("asdfasdf", "SFG", "KCR")))
+    streamFile(resourcePath) { game =>
+      println(BaseballReference.getBoxScoreString(game))
     }
   }
 

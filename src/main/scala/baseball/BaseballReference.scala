@@ -1,6 +1,6 @@
 package baseball
 
-import simple.SimpleBaseball.Box.{BoxItem, BoxScore}
+import baseball.Box._
 
 object BaseballReference {
 
@@ -79,6 +79,42 @@ object BaseballReference {
     )
   }
 
+  case class TeamLines(
+    away: List[BaseballReferenceLine],
+    home: List[BaseballReferenceLine],
+  )
+
+  case class InningLines(
+    inningLines: List[BaseballReferenceLine]
+  )
+
+  object InningLines {
+    def countInnings(il: InningLines): Int = il.inningLines.length
+  }
+
+  case class GameWithSplits(
+    game: Game,
+    teamsLines: TeamLines,
+    inningsLines: List[InningLines]
+  )
+
+  object GameWithSplits {
+    def apply(game: Game): GameWithSplits = {
+      val teamSplit = splitAtDiff(game.lines)(_.atBat)
+      GameWithSplits(
+        game = game,
+        teamsLines = TeamLines(
+          away = safeAccess(teamSplit,0).getOrElse(List()),
+          home = safeAccess(teamSplit,1).getOrElse(List())
+        ),
+        inningsLines = splitAtDiff(game.lines)(_.inning.number).map(InningLines.apply)
+      )
+    }
+  }
+
+  def safeAccess[A](l: List[A], index: Int): Option[A] =
+    if(l.length > index) Some(l(index)) else None
+
   def splitAtDiff[A,B](list: List[A])(f: A => B): List[List[A]] = {
     def loop(list: List[A], tmpAccu: List[A], accu: List[List[A]], last: Option[B]): List[List[A]] = list match {
       case Nil =>
@@ -94,18 +130,29 @@ object BaseballReference {
   }
 
   def getBoxScore(game: Game): BoxScore = {
-    val boxItems: List[BoxItem] = splitAtDiff(game.lines)(_.inning.number).flatMap {lineInnings =>
-      splitAtDiff(lineInnings)(_.inning.`type`).map {topBottom =>
-        topBottom.map(_.runsOuts.runs).sum
-      } match {
-        case away :: home :: Nil =>
-          Some(BoxItem(away, home))
-        case away :: Nil =>
-          Some(BoxItem(away, 0))
-        case _ => None
+    val boxItems: List[BoxItem] =
+      splitAtDiff(game.lines)(_.inning.number).flatMap {lineInnings =>
+        splitAtDiff(lineInnings)(_.inning.`type`).map {topBottom =>
+          topBottom.map(_.runsOuts.runs).sum
+        } match {
+          case away :: home :: Nil =>
+            Some(BoxItem(away, home))
+          case away :: Nil =>
+            Some(BoxItem(away, 0))
+          case _ => None
+        }
       }
-    }
 
     BoxScore(boxItems, BoxItem(boxItems.map(_.away).sum,boxItems.map(_.home).sum))
+  }
+
+  def getBoxScoreString(game: Game): String = {
+    val gameWithSplits = GameWithSplits(game)
+    val box = getBoxScore(game)
+    val teams = BoxColumn("",
+      away = gameWithSplits.teamsLines.away.headOption.map(_.atBat).getOrElse(""),
+      home = gameWithSplits.teamsLines.home.headOption.map(_.atBat).getOrElse("")
+    )
+    Box.boxAsString(box, teams)
   }
 }

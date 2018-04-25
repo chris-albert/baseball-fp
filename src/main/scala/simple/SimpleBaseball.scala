@@ -1,6 +1,7 @@
 package simple
 
-import simple.SimpleBaseball.Box.{BoxItem, BoxScore}
+import baseball.Box
+import baseball.Box.{BoxItem, BoxScore}
 
 object SimpleBaseball {
   def main(args: Array[String]) = {
@@ -57,133 +58,6 @@ object SimpleBaseball {
     }.toSeq.sortBy(_._1).map(_._2)
     val lastInning = ls.last
     BoxScore(box.toList, BoxItem(lastInning.away.runs, lastInning.home.runs))
-  }
-
-  object Box {
-
-    case class BoxColumn(header: String, away: String, home: String, separator: String = "-") {
-      lazy val padd = Seq(header,away,home,separator).map(_.length).max
-      def padded(f: BoxColumn => String): String = paddRight(f(this),padd)
-    }
-    case class BoxItem(away: Int, home: Int)
-
-    case class BoxScore(box: List[BoxItem], runs: BoxItem)
-
-    def digits(n: Int) = if (n == 0) 1 else math.log10(math.abs(n)).toInt + 1
-
-    def boxAsString(bs: BoxScore, names: BoxColumn = BoxColumn("","Away","Home")): String = {
-      val innings = bs.box.zipWithIndex.map{case (boxItem, index) =>
-        BoxColumn((index + 1).toString,boxItem.away.toString,boxItem.home.toString)
-      }
-      val agg = Seq(BoxColumn("R",bs.runs.away.toString,bs.runs.home.toString))
-      val columnSep = BoxColumn("|","|","|","-")
-      val all = Seq(names) ++ innings ++ agg
-
-      Seq(
-        all.map(_.padded(_.header)).mkString(" "),
-        all.map(_.padded(_.separator)).mkString("-"),
-        all.map(_.padded(_.away)).mkString(" "),
-        all.map(_.padded(_.home)).mkString(" "),
-        all.map(_.padded(_.separator)).mkString("-")
-      ).mkString("\n")
-    }
-
-    def boxAsStrin2g(bs: BoxScore): String = {
-      val innings = if (bs.box.length < 9) 9 else bs.box.length
-      val header = (1 until innings + 1).map(i => i -> digits(i))
-      val away = bs.box.map(bi => Some(bi.away))
-      val home = bs.box.map(bi => Some(bi.home))
-
-      val h = header.map(_._1).mkString(" ") + " "
-      val diff = 9 - away.length
-      val fillLine = fillArr(diff,None)
-
-      val awayRow = (away ++ fillLine).map(_.getOrElse(" ")).mkString(" ") + " "
-      val homeRow = (home ++ fillLine).map(_.getOrElse(" ")).mkString(" ") + " "
-      val separator = fill(awayRow.length , "-")
-      val boxSep = "|"
-      val names = buildNames(bs)
-      val box = buildBox(bs)
-      val agg = buildAgg(bs)
-      val zipped = names.zip(box).zip(agg)
-      zipped.map {
-        case ((names,box),agg) => s"$names $box $agg"
-      }.mkString("\n")
-//      zipped.map
-//      Seq(
-//        boxSep + " " + h + boxSep + " R |",
-//        "--" + separator + "-----",
-//        boxSep + " " + awayRow + boxSep + " " + bs.runs.away + " |",
-//        boxSep + " " + homeRow + boxSep + " " + bs.runs.home + " |",
-//        "--" + separator + "-----"
-//      ).mkString("\n")
-    }
-
-    def buildNames(bs: BoxScore): Seq[String] = {
-      val names = Seq("Away","Home")
-      val largest = names.map(_.length).max
-      Seq(
-        fill(largest," "),
-        fill(largest,"-")
-      ) ++ names ++ Seq(
-        fill(largest,"-")
-      )
-    }
-
-    def buildBox(bs: BoxScore): Seq[String] = {
-      val innings = if (bs.box.length < 9) 9 else bs.box.length
-      val header = (1 until innings + 1).map(i => i -> digits(i))
-      val away = bs.box.map(bi => Some(bi.away))
-      val home = bs.box.map(bi => Some(bi.home))
-
-      val h = header.map(_._1).mkString(" ")
-      val diff = 9 - away.length
-      val fillLine = fillArr(diff,None)
-
-      val awayRow = (away ++ fillLine).map(_.getOrElse(" ")).mkString(" ")
-      val homeRow = (home ++ fillLine).map(_.getOrElse(" ")).mkString(" ")
-      val separator = fill(awayRow.length , "-")
-      val largest = Seq(h,awayRow,homeRow).map(_.length).max
-      Seq(
-        h,
-        fill(largest,"-"),
-        awayRow,
-        homeRow,
-        fill(largest,"-")
-      )
-    }
-
-    def buildAgg(bs: BoxScore): Seq[String] = {
-      val h = "R"
-      val aggs = Seq(bs.runs.away,bs.runs.home).map(_.toString)
-      val largest = aggs.map(_.length).max
-      Seq(
-        h,
-        fill(largest,"-")
-      ) ++ aggs ++ Seq(
-        fill(largest,"-")
-      )
-    }
-
-    def fillArr[A](n: Int, a: A): Seq[A] = (0 until n).map(_ => a)
-
-    def fill(n: Int, s: String): String =
-      fillArr(n,s).mkString("")
-
-    def padd(s: String, p: String): String = s"$p$s$p"
-    def paddRight(s: String,n: Int): String = {
-      val diff = n - s.length
-      s + fill(diff," ")
-    }
-
-    val bs =
-      """
-        |      | 1 2 3 4 5 6 7 8 9 | R H E |
-        |-----------------------------------
-        | Away | 0 0 0 1 0 2 0 0 1 | 4 8 0 |
-        | Home | 1 1 1 3 0 0 0 0 0 | 6 9 0 |
-        |-----------------------------------
-      """.stripMargin
   }
 
 
