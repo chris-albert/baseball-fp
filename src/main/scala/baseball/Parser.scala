@@ -1,12 +1,12 @@
 package baseball
 
-import baseball.BaseballReference.{BaseballReferenceLine, Inning, PitchCount, PitchSequence, Pitches, RunnersOnBase, RunsOuts, Score}
+import baseball.BaseballReference._
 import cats.data._
 import cats.data.Validated._
 import cats.implicits._
 import scala.util.{Success, Try}
 
-trait Parser {
+object Parser {
 
   type Result[A] = ValidatedNel[ParseValidation,A]
 
@@ -25,6 +25,7 @@ trait Parser {
         parsePitcher(seq(8)),
         parseWTWP(seq(9)),
         parseWTWE(seq(10)),
+        parseAtBatOutcome(seq(11)),
         parseDescription(seq(11))
       ).mapN(BaseballReferenceLine)
     }
@@ -133,7 +134,8 @@ trait Parser {
       case _ => InvalidWinningTeamsWinExpectancy(wtwe).invalidNel
     }
 
-//  val descriptionRegEx = raw"(^[\w\s]*):".r
+  def parseAtBatOutcome(desc: String): Result[AtBatOutcome] =
+    AtBatOutcome.parse(desc)
 
   def parseDescription(desc: String): Result[String] =
     if(desc.isEmpty) {
@@ -194,9 +196,11 @@ trait Parser {
     override def message: String = s"Invalid winning teams win expectancy [$wtwe]"
   }
 
+  case class InvalidAtBatOutcome(desc: String) extends ParseValidation {
+    override def message: String = s"Invalid at bat outcome [$desc]"
+  }
+
   case class InvalidDescription(desc: String) extends ParseValidation {
     override def message: String = s"Invalid description [$desc]"
   }
 }
-
-object Parser extends Parser

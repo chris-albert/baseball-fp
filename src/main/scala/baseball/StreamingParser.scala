@@ -42,7 +42,9 @@ object StreamingParser extends App{
 
   def start() = {
     streamFile(resourcePath) { game =>
-      println(BaseballReference.getBoxScoreString(game))
+      println(getBoxScoreString(game))
+
+      game.lines.map(_.description).sorted.map(println)
     }
   }
 
